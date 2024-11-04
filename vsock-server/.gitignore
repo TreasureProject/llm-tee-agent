@@ -1,0 +1,11 @@
+# Rust build directory
+/target/
+
+# Rust package manager directory
+Cargo.lock
+
+.DS_Store
+.vscode/
+.env
+/target/doc/
+/doc/
