@@ -1,0 +1,70 @@
+# vsock.yaml
+arch: "aarch64"
+
+images:
+  - location: "https://cloud-images.ubuntu.com/releases/22.04/release/ubuntu-22.04-server-cloudimg-arm64.img"
+    arch: "aarch64"
+
+mounts:
+  - location: "~"
+    writable: true
+
+containerd:
+  system: false
+  user: false
+
+cpus: 2
+memory: 2GiB
+disk: 20GiB
+
+provision:
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      # Install build tools
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update
+      apt-get install -y build-essential
+
+      # Setup VSOCK modules to load at boot
+      tee /etc/modules-load.d/vsock.conf <<EOF
+      vhost
+      vsock
+      vhost_vsock
+      vmw_vsock_virtio_transport
+      EOF
+
+      # Load modules immediately
+      modprobe vhost
+      modprobe vsock
+      modprobe vhost_vsock
+      modprobe vmw_vsock_virtio_transport
+
+      # Verify VSOCK setup
+      if [ ! -e "/dev/vsock" ]; then
+        echo "VSOCK device not created"
+        exit 1
+      fi
+
+probes:
+  - script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      if ! [ -e "/dev/vsock" ]; then
+        echo >&2 "VSOCK device not available"
+        exit 1
+      fi
+      if ! lsmod | grep -q vsock; then
+        echo >&2 "VSOCK modules not loaded"
+        exit 1
+      fi
+    hint: "Check if VSOCK is properly setup in the VM"
+
+message: |
+  VSOCK-enabled VM is ready.
+  To check VSOCK status:
+  ------
+  ls -l /dev/vsock
+  lsmod | grep vsock
+  ------
