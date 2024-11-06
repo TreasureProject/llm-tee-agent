@@ -1,0 +1,7 @@
+# Dockerfile.client
+
+FROM python:3.12-slim-bookworm
+
+COPY src/ .
+
+CMD ["/usr/local/bin/python3", "vsock.py", "client", "3", "5005"]
